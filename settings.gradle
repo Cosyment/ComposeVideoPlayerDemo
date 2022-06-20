@@ -1,0 +1,144 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        google()
+        mavenCentral()
+    }
+}
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
+    repositories {
+        google()
+        mavenCentral()
+        jcenter()
+        maven { setUrl('https://jitpack.io') }
+    }
+}
+
+enableFeaturePreview("VERSION_CATALOGS")
+dependencyResolutionManagement {
+    versionCatalogs {
+        libs {
+            version("core", "1.7.0")
+            version("arch", "2.1.0")
+            version("compose", "1.1.1")
+            version("accompanist", "0.23.1")
+            version("lifecycle", "2.4.0")
+            version('kotlin', '1.6.10')
+            version("room", "2.4.2")
+            version("retrofit", "2.9.0")
+
+            alias("appcompat").to("androidx.appcompat:appcompat:1.4.1")
+            alias("core").to("androidx.core", "core").versionRef("core")
+            alias("core-ktx").to("androidx.core", "core-ktx").versionRef("core")
+            alias("material").to("com.google.android.material:material:1.5.0")
+            alias("kotlin").to("org.jetbrains.kotlin", "kotlin-stdlib").versionRef("kotlin")
+            alias("core-common").to("androidx.arch.core", "core-common").versionRef("arch")
+            alias("core-runtime").to("androidx.arch.core", "core-runtime").versionRef("arch")
+            alias("palette-ktx").to("androidx.palette:palette-ktx:1.0.0")
+            bundle("necessary", ["appcompat", "core", "core-ktx", "material", "kotlin", "core-common", "core-runtime", "palette-ktx"])
+
+//            lifecycle
+            alias("lifecycle-common").to("androidx.lifecycle", "lifecycle-common-java8").versionRef("lifecycle")
+            alias("livedata").to("androidx.lifecycle", "lifecycle-livedata").versionRef("lifecycle")
+            alias("livedata-core").to("androidx.lifecycle", "lifecycle-livedata-core").versionRef("lifecycle")
+            alias("runtime").to("androidx.lifecycle", "lifecycle-runtime").versionRef("lifecycle")
+            alias("runtime-ktx").to("androidx.lifecycle", "lifecycle-runtime-ktx").versionRef("lifecycle")
+            alias("viewmodel").to("androidx.lifecycle", "lifecycle-viewmodel").versionRef("lifecycle")
+            alias("viewmodel-ktx").to("androidx.lifecycle", "lifecycle-viewmodel-ktx").versionRef("lifecycle")
+            alias("viewmodel-savedstate").to("androidx.lifecycle", "lifecycle-viewmodel-savedstate").versionRef("lifecycle")
+            bundle("lifecycle",
+                    ["lifecycle-common", "livedata", "livedata-core", "runtime", "runtime-ktx", "viewmodel", "viewmodel-ktx", "viewmodel-savedstate"])
+
+//            ui
+            alias("activity-compose").to("androidx.activity:activity-compose:1.4.0")
+            alias("navigation-compose").to("androidx.navigation:navigation-compose:2.4.1")
+            alias("compose-ui").to("androidx.compose.ui", "ui").versionRef("compose")
+            alias("compose-material").to("androidx.compose.material", "material").versionRef("compose")
+            alias("compose-foundation-layout").to("androidx.compose.foundation", "foundation-layout").versionRef("compose")
+            alias("ui-tooling").to("androidx.compose.ui", "ui-tooling").versionRef("compose")
+            alias("compose-ui-tooling-preview").to("androidx.compose.ui", "ui-tooling-preview").versionRef("compose")
+            bundle("compose",
+                    ["compose-ui", "activity-compose", "navigation-compose", "compose-material", 'compose-foundation-layout', "ui-tooling", "compose-ui-tooling-preview"])
+
+            alias("paging").to("androidx.paging:paging-compose:1.0.0-alpha14")
+            alias("splashscreen").to("androidx.core:core-splashscreen:1.0.0-beta02")
+            alias("constraintlayout").to("androidx.constraintlayout:constraintlayout-compose:1.0.0")
+            alias("animation-graphics").to("androidx.compose.animation:animation-graphics:1.1.0")
+
+//            accompanist
+            alias("systemuicontroller").to("com.google.accompanist", "accompanist-systemuicontroller").versionRef("accompanist")
+            alias("swiperefresh").to("com.google.accompanist", "accompanist-swiperefresh").versionRef("accompanist")
+            alias("insets").to("com.google.accompanist", "accompanist-insets").versionRef("accompanist")
+            alias("insets-ui").to("com.google.accompanist", "accompanist-insets-ui").versionRef("accompanist")
+            alias("pager").to("com.google.accompanist", "accompanist-pager").versionRef("accompanist")
+            alias("placeholder").to("com.google.accompanist", "accompanist-placeholder-material").versionRef("accompanist")
+            alias("navigation-animation").to("com.google.accompanist", "accompanist-navigation-animation").versionRef("accompanist")
+            bundle("accompanist", ["systemuicontroller", "swiperefresh", "insets", "insets-ui", "pager", "placeholder", "navigation-animation"])
+
+//            room
+            alias("room-runtime").to("androidx.room", "room-runtime").versionRef("room")
+            alias("room-compiler").to("androidx.room", "room-compiler").versionRef("room")
+            alias("room-ktx").to("androidx.room", "room-ktx").versionRef("room")
+            alias("room-paging").to("androidx.room", "room-paging").versionRef("room")
+            bundle("room", ["room-runtime", "room-ktx", "room-paging"])
+
+            alias("coil").to("io.coil-kt:coil-compose:1.4.0")
+
+//            http
+            alias("okhttp").to("com.squareup.okhttp3:okhttp:4.9.1")
+            alias("retrofit").to("com.squareup.retrofit2", "retrofit").versionRef("retrofit")
+            alias("converter-gson").to("com.squareup.retrofit2", "converter-gson").versionRef("retrofit")
+            alias("adapter-rxjava2").to("com.squareup.retrofit2", "adapter-rxjava2").versionRef("retrofit")
+            bundle("http", ["okhttp", "retrofit", "converter-gson", "adapter-rxjava2"])
+
+//            firebase
+            alias("firebase-core").to("com.google.firebase:firebase-core:20.1.2")
+            alias("firebase-pref").to("com.google.firebase:firebase-perf:20.0.6")
+            alias("firebase-analytics").to("com.google.firebase:firebase-analytics:20.1.2")
+            bundle("firebase", ["firebase-core", "firebase-pref", "firebase-analytics"])
+
+//            admob
+            alias("admob").to("com.google.android.gms:play-services-ads:20.6.0")
+            alias("admob-facebook").to("com.google.ads.mediation:facebook:6.10.0.0")
+            alias("admob-union").to("com.qq.e.union:union:4.462.1332")
+            bundle("admob", ["admob", "admob-facebook"])
+
+//            third part
+            alias("vlc").to("org.videolan.android:libvlc-all:3.5.0-eap6")
+
+            alias("ijk-java").to("tv.danmaku.ijk.media:ijkplayer-java:0.8.8")
+            alias("ijk-arm64").to("tv.danmaku.ijk.media:ijkplayer-arm64:0.8.8")
+            bundle("ijk", ["ijk-java", "ijk-arm64"])
+
+            alias("lottie").to("com.airbnb.android:lottie-compose:5.1.1")
+            alias("mmkv").to("com.tencent:mmkv:1.2.12")
+            alias("downloader").to("com.zchd.component:downloader:1.0.0-SNAPSHOT")
+            alias("oaid").to("com.github.gzu-liyujiang:Android_CN_OAID:4.2.4")
+            alias("logger").to("com.orhanobut:logger:2.2.0")
+
+//            umeng
+            alias("fastjson").to("com.alibaba:fastjson:1.2.58")
+            alias("umeng-common").to("com.umeng.umsdk:common:9.4.7")
+            alias("umeng-asms").to("com.umeng.umsdk:asms:1.4.0")
+            alias("umeng-apm").to("com.umeng.umsdk:apm:1.5.2")
+            bundle("umeng", ["fastjson", "umeng-common", "umeng-asms", "umeng-apm"])
+
+//            test
+            alias("junit").to("junit:junit:4.13.2")
+            alias("junit-ext").to("androidx.test.ext:junit:1.1.3")
+            alias("espresso").to("androidx.test.espresso:espresso-core:3.4.0")
+            alias("ui-test-junit4").to("androidx.compose.ui", "ui-test-junit4").versionRef("compose")
+            bundle("test", ["junit", "junit-ext", "espresso", "ui-test-junit4"])
+
+            alias("metrics-performance").to("androidx.metrics:metrics-performance:1.0.0-alpha01")
+
+            alias("tinypinyin-core").to("com.github.promeg:tinypinyin:2.0.3")
+            alias("tinypinyin").to("io.github.biezhi:TinyPinyin:2.0.3.RELEASE")
+        }
+    }
+}
+
+rootProject.name = "ComposeVideoPlayerDemo"
+include ':app'
+include ':videoplayer'
