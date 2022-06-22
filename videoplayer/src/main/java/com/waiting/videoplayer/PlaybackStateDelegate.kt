@@ -67,6 +67,30 @@ class PlaybackStateDelegate(private val initialState: PlayerState) {
             stateFlow.set { copy(isDragging = value) }
         }
 
+    val isError: Boolean get() = stateFlow.value.uiState.showErrorOverlay
+
+    val isCompleted: Boolean get() = stateFlow.value.uiState.showCompleteOverlay
+
+    val isPipMode: Boolean get() = stateFlow.value.uiState.isPictureInPictureMode
+
+    var isAutoEnterPipMode: Boolean
+        get() = stateFlow.value.autoEnterPictureInPicture
+        set(value) {
+            stateFlow.set { copy(autoEnterPictureInPicture = value) }
+        }
+
+    var isAutoPlayNext: Boolean
+        get() = stateFlow.value.autoPlayNext
+        set(value) {
+            stateFlow.set { copy(autoPlayNext = value) }
+        }
+
+    var isContinuation: Boolean
+        get() = stateFlow.value.continuation
+        set(value) {
+            stateFlow.set { copy(continuation = value) }
+        }
+
     @Composable
     fun collect(): State<PlayerState> {
         return stateFlow.collectAsState()
@@ -120,7 +144,29 @@ class PlaybackStateDelegate(private val initialState: PlayerState) {
     }
 
     fun showAllControls(show: Boolean) {
-        stateFlow.set { copy(uiState = uiState.copy(showTopBar = show, showBottomBar = show, showLockButton = show)) }
+        stateFlow.set { copy(uiState = uiState.copy(showTopBar = show, showBottomBar = show, showLockButton = show, showPipButton = show)) }
+        if (!show) {
+            showRateOverlay(false)
+            showSerialOverlay(false)
+            showScaleOverlay(false)
+        }
+    }
+
+    fun enterPipMode(enter: Boolean) {
+        stateFlow.set {
+            copy(
+                uiState = uiState.copy(
+                    isPictureInPictureMode = enter,
+                    showTopBar = false,
+                    showBottomBar = false,
+                    showPipButton = false,
+                    showLockButton = false,
+                    showRateOverlay = false,
+                    showSerialOverlay = false,
+                    showScaleOverlay = false,
+                )
+            )
+        }
     }
 
     fun showControls(top: Boolean, bottom: Boolean) {
@@ -148,7 +194,6 @@ class PlaybackStateDelegate(private val initialState: PlayerState) {
             copy(
                 uiState = uiState.copy(
                     isPortrait = portrait,
-                    showLockButton = !portrait
                 )
             )
         }
@@ -193,14 +238,20 @@ class PlaybackStateDelegate(private val initialState: PlayerState) {
         showTopBar(false)
         showBottomBar(false)
         showLockButton(false)
+        showPipButton(false)
     }
 
     fun showCompleteOverlay(show: Boolean) {
-        stateFlow.set { copy(uiState = uiState.copy(showCompleteOverlay = show, enableGesture = false, showLoadingOverlay = false)) }
+        stateFlow.set {
+            copy(
+                isPlaying = false,
+                uiState = uiState.copy(showCompleteOverlay = show, enableGesture = false, showLoadingOverlay = false)
+            )
+        }
     }
 
     fun showErrorOverlay(show: Boolean) {
-        stateFlow.set { copy(uiState = uiState.copy(showErrorOverlay = show, showLoadingOverlay = false, enableGesture = false)) }
+        stateFlow.set { copy(isPlaying = false, uiState = uiState.copy(showErrorOverlay = show, showLoadingOverlay = false, enableGesture = false)) }
     }
 
     fun locked(lock: Boolean) {
@@ -209,6 +260,10 @@ class PlaybackStateDelegate(private val initialState: PlayerState) {
 
     fun showLockButton(show: Boolean) {
         stateFlow.set { copy(uiState = uiState.copy(showLockButton = show)) }
+    }
+
+    fun showPipButton(show: Boolean) {
+        stateFlow.set { copy(uiState = uiState.copy(showPipButton = show)) }
     }
 
     fun draggingVolume(volume: Float) {

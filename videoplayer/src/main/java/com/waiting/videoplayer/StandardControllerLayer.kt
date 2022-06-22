@@ -1,14 +1,22 @@
 package com.waiting.videoplayer
 
-import android.app.Activity
+import android.app.*
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
+import android.content.res.Resources
 import android.media.AudioManager
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
+import androidx.annotation.RequiresApi
 import androidx.compose.animation.*
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
@@ -88,6 +96,7 @@ internal fun StandardControllerLayer(
     gestureOverlay: @Composable ((PlaybackStateDelegate) -> Unit)? = null,
     extensionOverlay: @Composable ((PlaybackStateDelegate) -> Unit)? = null,
 ) {
+    val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val controller = LocalVideoPlayerController.current
     val orientation = LocalConfiguration.current.orientation
@@ -104,15 +113,65 @@ internal fun StandardControllerLayer(
         extensionOverlay?.invoke(state)
     }
 
+    val pipControlAction = MediaActionControl::class.java.simpleName
+    val receiver by remember {
+        mutableStateOf(object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                if (intent?.action.equals(pipControlAction)) {
+                    when (intent?.getStringExtra(pipControlAction)) {
+                        MediaActionControl.BACKWARD.value -> {
+                            controller.seekTo(state.currentDuration - 2000L)
+                        }
+                        MediaActionControl.PLAY.value -> {
+                            if (state.isCompleted) {
+                                Log.e("TAG", "------------>>111")
+                                controller.replay()
+                            } else {
+                                controller.play()
+                            }
+                        }
+                        MediaActionControl.PAUSE.value -> {
+                            controller.pause()
+                        }
+                        MediaActionControl.FORWARD.value -> {
+                            controller.seekTo(state.currentDuration + 2000L)
+                        }
+                    }
+                }
+            }
+        })
+    }
+
+    LaunchedEffect(key1 = context, controller, receiver, block = {
+        context.registerReceiver(receiver, IntentFilter(pipControlAction))
+    })
+
     startTimedHideTask(state)
     DisposableEffect(controller, lifecycleOwner) {
         val observer = object : DefaultLifecycleObserver {
+            val activity = context as Activity
             override fun onPause(owner: LifecycleOwner) {
-                controller.pause()
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && activity.isInPictureInPictureMode) {
+                    Log.i("TAG", "-------pause isInPictureInPictureMode")
+                } else {
+                    controller.pause()
+                }
+            }
+
+            override fun onStop(owner: LifecycleOwner) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && activity.isInPictureInPictureMode) {
+                    controller.pause()
+                    controller.recycler()
+                    activity.finish()
+                }
             }
 
             override fun onResume(owner: LifecycleOwner) {
-                controller.resume()
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && activity.isInPictureInPictureMode) {
+                    Log.i("TAG", "-------resume isInPictureInPictureMode")
+                } else {
+                    controller.resume()
+                }
             }
 
             override fun onDestroy(owner: LifecycleOwner) {
@@ -122,6 +181,7 @@ internal fun StandardControllerLayer(
         lifecycleOwner.lifecycle.addObserver(observer)
 
         onDispose {
+            context.unregisterReceiver(receiver)
             lifecycleOwner.lifecycle.removeObserver(observer)
             clearTimedHideTask()
         }
@@ -171,6 +231,7 @@ private suspend fun PointerInputScope.controllerGestures(
 //基础功能
 @Composable
 internal fun TopBarOverlay(modifier: Modifier, state: PlaybackStateDelegate, extensionContent: @Composable ColumnScope.() -> Unit) {
+    val context = LocalContext.current
     val uiState by state.collect { uiState }
     val titleBarHeight = if (uiState.isPortrait) 40.dp else 45.dp
     AnimatedVisibility(
@@ -199,7 +260,7 @@ internal fun TopBarOverlay(modifier: Modifier, state: PlaybackStateDelegate, ext
     }
 
     AnimatedVisibility(
-        visible = if (uiState.isPortrait) true else uiState.showTopBar,
+        visible = if (uiState.isPortrait && !uiState.isPictureInPictureMode) true else uiState.showTopBar,
         enter = expandVertically(),
         exit = slideOutVertically(targetOffsetY = { -it })
     ) {
@@ -233,7 +294,6 @@ internal fun TopBarOverlay(modifier: Modifier, state: PlaybackStateDelegate, ext
         }
     }
 
-    val context = LocalContext.current
     BackHandler(enabled = !uiState.isPortrait, onBack = {
         context.let { it as Activity }.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
     })
@@ -648,6 +708,12 @@ internal fun GestureOverlay(state: PlaybackStateDelegate) {
 internal fun ExtensionOverlay(state: PlaybackStateDelegate) {
     Box(modifier = Modifier.fillMaxSize()) {
         val controller = LocalVideoPlayerController.current
+        LockControllerOverlay(modifier = Modifier.align(Alignment.CenterStart), state)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            PictureInPictureControllerOverlay(modifier = Modifier.align(Alignment.CenterEnd), state = state)
+        }
+
         ScaleControllerOverlay(modifier = Modifier.align(Alignment.CenterEnd), state) {
             controller.videoScale = it
         }
@@ -660,7 +726,6 @@ internal fun ExtensionOverlay(state: PlaybackStateDelegate) {
                 controller.play(this.uri)
             }
         }
-        LockControllerOverlay(modifier = Modifier.align(Alignment.CenterStart), state)
     }
 }
 
@@ -927,13 +992,14 @@ private fun LockControllerOverlay(modifier: Modifier, state: PlaybackStateDelega
     var locked by remember {
         mutableStateOf(uiState.locked)
     }
+
     AnimatedVisibility(
-        visible = uiState.showLockButton && !uiState.isPortrait,
+        visible = uiState.showLockButton && !uiState.isPortrait && !uiState.isPictureInPictureMode,
         modifier = modifier
             .padding(if (uiState.isPortrait) 5.dp else 30.dp)
             .allowInterceptTouchEvent(),
         enter = slideInHorizontally(initialOffsetX = { -it }),
-        exit = slideOutHorizontally(targetOffsetX = { -it })
+        exit = slideOutHorizontally(targetOffsetX = { if (uiState.isPictureInPictureMode) 0 else -it })
     ) {
         IconButton(onClick = {
             locked = !locked
@@ -950,7 +1016,88 @@ private fun LockControllerOverlay(modifier: Modifier, state: PlaybackStateDelega
             Icon(
                 painterResource(id = if (locked) R.drawable.ic_lock else R.drawable.ic_unlock),
                 contentDescription = null,
-                modifier = Modifier.size(30.dp),
+                modifier = Modifier.size(25.dp),
+                tint = Color.White.copy(0.8F)
+            )
+        }
+    }
+}
+
+@RequiresApi(Build.VERSION_CODES.O)
+@Composable
+private fun PictureInPictureControllerOverlay(modifier: Modifier, state: PlaybackStateDelegate) {
+    val context = (LocalContext.current as Activity)
+    val uiState by state.collect { uiState }
+
+    val pictureInPictureParams by remember {
+        mutableStateOf(PictureInPictureParams.Builder())
+    }
+
+    LaunchedEffect(key1 = state.collect { isPlaying }.value, block = {
+        val actions = listOf(
+            createRemoteAction(
+                context,
+                R.drawable.ic_backward_fill,
+                createRemoteActionIntent(context, MediaActionControl.BACKWARD.value)
+            ),
+            if (state.isPlaying) {
+                createRemoteAction(
+                    context,
+                    android.R.drawable.ic_media_pause,
+                    createRemoteActionIntent(context, MediaActionControl.PAUSE.value)
+                )
+            } else {
+                createRemoteAction(
+                    context,
+                    android.R.drawable.ic_media_play,
+                    createRemoteActionIntent(context, MediaActionControl.PLAY.value)
+                )
+            },
+            createRemoteAction(context,
+                R.drawable.ic_forward_fill,
+                createRemoteActionIntent(context, MediaActionControl.FORWARD.value))
+        )
+        context.setPictureInPictureParams(pictureInPictureParams.apply {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                setAutoEnterEnabled(state.isAutoEnterPipMode)
+            }
+            setActions(actions)
+            setSourceRectHint(android.graphics.Rect(0, 0, Resources.getSystem().displayMetrics.widthPixels, 500))
+        }.build())
+    })
+
+    AnimatedVisibility(
+        visible = uiState.showPipButton && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O,
+        modifier = modifier
+            .padding(if (uiState.isPortrait) 5.dp else 30.dp)
+            .allowInterceptTouchEvent(),
+        enter = slideInHorizontally(initialOffsetX = { it }),
+        exit = slideOutHorizontally(targetOffsetX = { if (uiState.isPictureInPictureMode) 0 else it })
+    ) {
+        IconButton(onClick = {
+            val appOpsManager = context.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
+            if (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    AppOpsManager.MODE_ALLOWED != appOpsManager.unsafeCheckOpNoThrow(
+                        AppOpsManager.OPSTR_PICTURE_IN_PICTURE,
+                        context.applicationInfo.uid,
+                        context.packageName
+                    )
+                } else {
+                    TODO("VERSION.SDK_INT < Q")
+                }
+            ) {
+                Toast.makeText(context, "请先打开画中画开关", Toast.LENGTH_SHORT).show()
+                return@IconButton
+            }
+//            if (!uiState.isPictureInPictureMode) {
+            state.enterPipMode(true)
+            context.enterPictureInPictureMode(pictureInPictureParams.build())
+//            }
+        }) {
+            Icon(
+                painterResource(id = R.drawable.ic_pip),
+                contentDescription = null,
+                modifier = Modifier.size(25.dp),
                 tint = Color.White.copy(0.8F)
             )
         }
@@ -1135,6 +1282,30 @@ private fun CustomOptionItem(title: String, isChecked: Boolean, onClick: () -> U
             tint = Color.White.copy(if (isChecked) 0.5f else 0f)
         )
     }
+}
+
+@RequiresApi(Build.VERSION_CODES.M)
+private fun createRemoteActionIntent(context: Context, value: String): PendingIntent {
+    return PendingIntent.getBroadcast(
+        context, Random().nextInt(),
+        Intent(MediaActionControl::class.java.simpleName).putExtra(MediaActionControl::class.java.simpleName, value),
+        PendingIntent.FLAG_IMMUTABLE
+    )
+}
+
+@RequiresApi(Build.VERSION_CODES.O)
+private fun createRemoteAction(context: Context, resId: Int, pendingIntent: PendingIntent): RemoteAction {
+    return RemoteAction(android.graphics.drawable.Icon.createWithResource(context, resId),
+        "",
+        "",
+        pendingIntent)
+}
+
+private sealed class MediaActionControl(val value: String) {
+    object BACKWARD : MediaActionControl("ACTION_MEDIA_CONTROL_BACKWARD")
+    object PLAY : MediaActionControl("ACTION_MEDIA_CONTROL_PLAY")
+    object PAUSE : MediaActionControl("ACTION_MEDIA_CONTROL_PAUSE")
+    object FORWARD : MediaActionControl("ACTION_MEDIA_CONTROL_FORWARD")
 }
 
 /**********************************************扩展功能**************************************/

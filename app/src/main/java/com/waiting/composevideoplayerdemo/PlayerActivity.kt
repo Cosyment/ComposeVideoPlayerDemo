@@ -17,8 +17,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
@@ -28,9 +27,7 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import com.google.accompanist.insets.ProvideWindowInsets
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
-import com.waiting.videoplayer.MediaItem
-import com.waiting.videoplayer.VideoPlayer
-import com.waiting.videoplayer.rememberVideoPlayerController
+import com.waiting.videoplayer.*
 
 
 /**
@@ -69,9 +66,24 @@ class PlayerActivity : ComponentActivity() {
 
                 // A surface container using the 'background' color from the theme
                 Surface(color = MaterialTheme.colorScheme.background) {
-                    Log.e("TAG", "=-----------------Surface $uri ")
                     uri?.let { VideoComponent(it) }
                 }
+            }
+        }
+    }
+
+    override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: Configuration?) {
+        stateDelegate?.enterPipMode(isInPictureInPictureMode)
+    }
+
+    @RequiresApi(Build.VERSION_CODES.N)
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        stateDelegate?.apply {
+            //Android 12以下自动进入画中画
+            if (this.isAutoEnterPipMode && Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+                enterPipMode(true)
+                enterPictureInPictureMode()
             }
         }
     }
@@ -93,7 +105,7 @@ class PlayerActivity : ComponentActivity() {
         }
     }
 }
-
+private var stateDelegate by mutableStateOf<PlaybackStateDelegate?>(null)
 
 @Composable
 fun VideoComponent(uri: Uri) {
@@ -103,7 +115,12 @@ fun VideoComponent(uri: Uri) {
         .background(Color.Black)
     ) {
         val controller = rememberVideoPlayerController()
-        VideoPlayer(controller = controller)
+        stateDelegate = rememberUiControllerState(controller = controller).apply {
+            VideoPlayer(controller = controller,
+                state = this.apply {
+                    isAutoEnterPipMode =true
+                })
+        }
 
         LaunchedEffect(key1 = controller, uri, block = {
             MediaItem("测试", uri).apply {

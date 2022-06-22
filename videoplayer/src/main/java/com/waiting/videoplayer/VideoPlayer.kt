@@ -4,7 +4,6 @@ import android.app.Activity
 import android.content.Context
 import android.media.AudioManager
 import android.provider.Settings
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -47,7 +46,7 @@ fun rememberVideoPlayerController(): AbstractVideoPlayerController {
 }
 
 @Composable
-internal fun rememberUiControllerState(controller: AbstractVideoPlayerController): PlaybackStateDelegate {
+fun rememberUiControllerState(controller: AbstractVideoPlayerController): PlaybackStateDelegate {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     return rememberSaveable(context, coroutineScope, saver = PlaybackStateDelegate.Saver) {
@@ -61,6 +60,7 @@ internal fun rememberUiControllerState(controller: AbstractVideoPlayerController
         ))
 
         controller.setEventListener {
+
             when (it) {
                 PlayerEvent.IDLE -> {
                     delegateState.showLoadingOverlay(true)

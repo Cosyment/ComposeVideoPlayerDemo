@@ -35,6 +35,9 @@ data class PlayerState(
     val currentVolume: Float = 0.0F,
     val currentBrightness: Float = 0.0F,
     val rate: Float = 1.0F,
+    val autoEnterPictureInPicture: Boolean = false,
+    val autoPlayNext: Boolean = true,
+    val continuation: Boolean = true,
     val uiState: UiState = UiState(),
 ) : Parcelable
 
@@ -43,12 +46,13 @@ data class UiState(
     val isPortrait: Boolean = true,
     val locked: Boolean = false,
     val enableGesture: Boolean = true,
-
+    val isPictureInPictureMode: Boolean = false,
     val showLoadingOverlay: Boolean = false,
     val showTopBar: Boolean = false,
     val showBottomBar: Boolean = false,
     val showCenterProgress: Boolean = false,
     val showLockButton: Boolean = false,
+    val showPipButton: Boolean = true,
     val showRateOverlay: Boolean = false,
     val showScaleOverlay: Boolean = false,
     val showSerialOverlay: Boolean = false,
